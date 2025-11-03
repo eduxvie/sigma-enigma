@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pomodoro Timer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>25</text></svg>">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f9f9fb;
+      color: #333;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      overflow: hidden;
+      text-align: center;
+    }
+    .dark body { 
+      background: #1a1a1a; 
+      color: #e0e0e0; 
+    }
+
+    .timer {
+      background: white;
+      padding: 2.5rem 2rem;
+      border-radius: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 300px;
+    }
+    .dark .timer { 
+      background: #2d2d2d; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
+    }
+
+    .display {
+      font-size: 3.8rem;
+      font-weight: 600;
+      letter-spacing: -1px;
+      margin-bottom: 1rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .dark .display { color: #e0e0e0; }
+
+    .label {
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 1.5rem;
+      opacity: 0.7;
+    }
+    .dark .label { color: #aaa; }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: #2d6a4f;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 90px;
+      font-size: 1rem;
+    }
+    button:hover { 
+      background: #6d28d9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(109,40,217,0.4);
+    }
+    button:active { transform: translateY(0); }
+    button.secondary {
+      background: #666;
+    }
+    button.secondary:hover { 
+      background: #555; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
+    }
+
+    .sessions {
+      margin-top: 1.5rem;
+      font-size: 0.95rem;
+      opacity: 0.7;
+    }
+    .dark .sessions { color: #aaa; }
+
+    /* Compact Brand Signature */
+    .brand-sig {
+      margin-top: 1rem;
+      font-size: 0.65rem;
+      opacity: 0.6;
+      text-align: center;
+    }
+    .brand-sig a {
+      color: inherit;
+      text-decoration: none;
+      margin-left: 4px;
+    }
+    .dark .brand-sig { opacity: 0.7; }
+    .dark .brand-sig a { color: #c4b5fd; }
+
+    @media (max-width: 340px) {
+      .display { font-size: 3.2rem; }
+      .timer { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="timer">
+    <div class="display" id="display">25:00</div>
+    <div class="label" id="label">Pomodoro</div>
+
+    <div class="controls">
+      <button id="start">Start</button>
+      <button id="pause" class="secondary" disabled>Pause</button>
+      <button id="reset" class="secondary">Reset</button>
+    </div>
+
+    <div class="sessions">Sessions: <span id="sessions">0</span></div>
+
+    <!-- Compact Brand Signature -->
+    <div class="brand-sig">
+      <span style="color:#6d28d9;font-weight:600;">ΣE</span>
+      <a href="https://github.com/eduxvie/sigma-enigma" target="_blank">@eduxvie</a>
+    </div>
+  </div>
+
+  <script>
+    const WORK_TIME = 25 * 60;
+    let timeLeft = WORK_TIME;
+    let isRunning = false;
+    let sessionCount = 0;
+    let timerId = null;
+
+    const display = document.getElementById('display');
+    const label = document.getElementById('label');
+    const startBtn = document.getElementById('start');
+    const pauseBtn = document.getElementById('pause');
+    const resetBtn = document.getElementById('reset');
+    const sessionsEl = document.getElementById('sessions');
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const secs = (seconds % 60).toString().padStart(2, '0');
+      return `${mins}:${secs}`;
+    }
+
+    function updateDisplay() {
+      display.textContent = formatTime(timeLeft);
+    }
+
+    function checkDarkMode() {
+      document.body.classList.toggle('dark', 
+        window.matchMedia('(prefers-color-scheme: dark)').matches
+      );
+    }
+    window.matchMedia('(prefers-color-scheme: dark)')
+      .addEventListener('change', checkDarkMode);
+    checkDarkMode();
+
+    function startTimer() {
+      if (isRunning) return;
+      isRunning = true;
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+
+      timerId = setInterval(() => {
+        timeLeft--;
+        updateDisplay();
+
+        if (timeLeft <= 0) {
+          clearInterval(timerId);
+          isRunning = false;
+          handleComplete();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      clearInterval(timerId);
+      isRunning = false;
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      startBtn.textContent = 'Resume';
+    }
+
+    function resetTimer() {
+      clearInterval(timerId);
+      isRunning = false;
+      timeLeft = WORK_TIME;
+      updateDisplay();
+      label.textContent = 'Pomodoro';
+      startBtn.textContent = 'Start';
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+    }
+
+    function handleComplete() {
+      const audio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAA');
+      audio.play().catch(() => {});
+
+      sessionCount++;
+      sessionsEl.textContent = sessionCount;
+
+      timeLeft = WORK_TIME;
+      updateDisplay();
+      label.textContent = 'Pomodoro';
+
+      setTimeout(() => {
+        if (!isRunning) startTimer();
+      }, 1200);
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (startBtn.textContent === 'Resume') {
+        startBtn.textContent = 'Start';
+      }
+      startTimer();
+    });
+
+    pauseBtn.addEventListener('click', pauseTimer);
+    resetBtn.addEventListener('click', resetTimer);
+
+    updateDisplay();
+  </script>
+</body>
+</html>
